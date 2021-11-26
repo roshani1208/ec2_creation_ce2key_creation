@@ -1,0 +1,70 @@
+---
+- name: Create a new EC2 key
+  ec2_key:
+    name: idopkeynov
+    region: us-east-1
+#   state: absent
+  register: ec2_key_result
+
+#- debug:
+#    msg: "{{ ec2_key_result }}"
+
+- name: Save private key
+  copy: content="{{ ec2_key_result.key.private_key }}" dest="./keys/idopkeynov.pem" mode=0600
+  when: ec2_key_result.changed
+
+- ec2:
+    key_name: idopkeynov
+    group_id: "{{ Security_Group }}"
+    instance_type: "{{ Instance_Types }}"
+    image: "{{ ami_id }}"
+    wait: yes
+    wait_timeout: 500
+    instance_tags: "{{ tag_values }}"
+    termination_protection: no
+    assign_public_ip: yes
+    monitoring: no
+    instance_profile_name: "{{ IAM_Roles }}"
+    wait: true
+    vpc_subnet_id: "{{ vpc_subnet_id }}"
+    region: "{{ region }}"
+    zone: "{{ zone }}"
+  register: ec2
+  when:
+    - (os_type == "Linux")
+
+#- debug:
+#   msg: "{{ ec2 }}"
+
+- set_fact:
+    instance_ids: "{{ ec2.instance_ids }}"
+  when: ec2.changed == true
+
+- set_fact:
+    public_ip: "{{ ec2.instances[0].public_ip }}"
+  when: ec2.changed == true
+
+
+- debug:
+    msg="running"
+  when: ec2.changed == true
+
+- set_fact:
+        endstate: 'Instanse is up and running with instance_id: "{{ instance_ids }}" and with public_ip: "{{ public_ip }}"'
+  when: ec2.changed == true
+
+- debug:
+    msg="not running"
+  when: ec2.changed == false
+
+- set_fact:
+        endstate: "Fail to create instance."
+  when: ec2.changed == false
+
+
+- copy:
+    content: "{{ endstate }}"
+    dest: "/root/instance_deployment/reports/{{ job_name }}_{{ build_number }}_result.txt"
+  delegate_to: localhost
+  run_once: true
+  ignore_errors: yes
