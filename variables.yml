@@ -1,0 +1,13 @@
+---
+key_name: xya_key
+Security_Group: sg-068c2fa61d92396a0
+Instance_Types: t2.micro
+ami_id: ami-02e136e904f3da870
+tag_values: test=server
+IAM_Roles: ec2_rolename
+vpc_subnet_id: subnet-05a3eae766f6c16c6
+region: us-east-1
+zone: us-east-1a
+os_type: Linux
+job_name: ec2_creation
+build_number: 2
